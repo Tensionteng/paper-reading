@@ -1,0 +1,37 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+ENV/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Data & runtime
+backend/data/
+*.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker (optional, keep if you want)
+# Uncomment below if you don't want to track Docker files
+# Dockerfile
+# docker-compose.yml
+*.egg-info/

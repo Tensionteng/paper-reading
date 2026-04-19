@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    ports:
+      - "8081:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY}
+      - MOONSHOT_MODEL=${MOONSHOT_MODEL:-moonshot-v1-32k}
+      - DATABASE_URL=sqlite:///./data/papers.db
+      - PAPERS_DIR=./data/papers
+      - IMAGES_DIR=./data/images
+    restart: unless-stopped

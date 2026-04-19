@@ -1,0 +1,21 @@
+[project]
+name = "arxiv-paper-web-backend"
+version = "0.1.0"
+description = "ArXiv paper reader web service"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "python-multipart>=0.0.9",
+    "aiofiles>=23.2.0",
+    "requests>=2.31.0",
+    "pymupdf>=1.23.0",
+    "openai>=1.14.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv]
+python-preference = "only-system"
