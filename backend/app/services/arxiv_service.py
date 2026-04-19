@@ -156,42 +156,121 @@ class ArxivService:
                 return candidate
         return None
 
+    def _compile_tikz_figure(self, tex_dir: Path, fig_content: str, output_path: Path) -> bool:
+        """Compile a tikz figure to PNG using the paper's preamble."""
+        import subprocess
+        import tempfile
+
+        # Find main tex to get preamble
+        tex_files = list(tex_dir.rglob("*.tex"))
+        main_tex = self.find_main_tex(tex_files)
+        if not main_tex:
+            return False
+
+        main_content = main_tex.read_text(encoding="utf-8", errors="ignore")
+        docclass_idx = main_content.find("\\documentclass")
+        begin_doc_idx = main_content.find("\\begin{document}")
+        if docclass_idx == -1 or begin_doc_idx == -1:
+            return False
+
+        preamble = main_content[docclass_idx:begin_doc_idx]
+
+        # Clean figure content: remove caption/label
+        fig_clean = fig_content
+        fig_clean = re.sub(r"\\caption\{[^}]*\}", "", fig_clean, flags=re.DOTALL)
+        fig_clean = re.sub(r"\\label\{[^}]*\}", "", fig_clean)
+
+        tex_content = f"""{preamble}
+\\begin{{document}}
+\\thispagestyle{{empty}}
+\\nopagecolor
+{fig_clean}
+\\end{{document}}
+"""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            tex_path = tmpdir_path / "fig.tex"
+            tex_path.write_text(tex_content, encoding="utf-8")
+
+            # Copy auxiliary files from tex_dir (styles, small images, etc.)
+            for f in tex_dir.iterdir():
+                if f.is_file() and f.suffix in [".sty", ".cls", ".bst", ".bib"]:
+                    shutil.copy2(f, tmpdir_path / f.name)
+            # Also copy subdirectories (figures/, tables/, etc.)
+            for subdir in tex_dir.iterdir():
+                if subdir.is_dir():
+                    dst = tmpdir_path / subdir.name
+                    if dst.exists():
+                        shutil.rmtree(dst)
+                    shutil.copytree(subdir, dst)
+
+            try:
+                result = subprocess.run(
+                    ["pdflatex", "-interaction=nonstopmode", str(tex_path.name)],
+                    cwd=tmpdir,
+                    capture_output=True,
+                    timeout=120,
+                )
+                pdf_path = tmpdir_path / "fig.pdf"
+                if not pdf_path.exists():
+                    stderr_text = result.stderr.decode("utf-8", errors="ignore")[:300] if result.stderr else ""
+                    stdout_text = result.stdout.decode("utf-8", errors="ignore")[-500:] if result.stdout else ""
+                    logger.warning(
+                        f"Tikz compilation produced no PDF for {output_path.name}. "
+                        f"stderr: {stderr_text}, stdout tail: {stdout_text}"
+                    )
+                    return False
+
+                self.convert_pdf_to_png(pdf_path, output_path, dpi=150)
+                return True
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Tikz compilation timed out for {output_path.name}")
+            except Exception as e:
+                logger.warning(f"Tikz compilation failed for {output_path.name}: {e}")
+
+        return False
+
     def extract_images_from_latex(self, tex_dir: Path, output_dir: Path, figures: List[Dict[str, str]]) -> List[Path]:
-        """Extract images referenced in figure environments. Preserve original filenames (PDF->PNG)."""
+        """Extract images from figure environments. Preserve original filenames for external images; compile tikz."""
         image_files = []
         output_dir.mkdir(parents=True, exist_ok=True)
         seen_names: set[str] = set()
 
-        for fig in figures:
+        for i, fig in enumerate(figures, 1):
             img_name = fig.get("image_file", "").strip()
-            if not img_name:
-                continue
+            raw_content = fig.get("raw", "")
 
-            src_path = self._find_image_file(tex_dir, img_name)
-            if not src_path:
-                logger.warning(f"Could not find image file for: {img_name}")
-                continue
+            if img_name:
+                # External image file
+                src_path = self._find_image_file(tex_dir, img_name)
+                if src_path:
+                    ext = src_path.suffix.lower()
+                    base_name = src_path.stem
+                    if base_name not in seen_names:
+                        seen_names.add(base_name)
+                        out_path = output_dir / f"{base_name}.png"
+                        if ext == ".pdf":
+                            if self.convert_pdf_to_png(src_path, out_path):
+                                image_files.append(out_path)
+                        elif ext in [".png", ".jpg", ".jpeg"]:
+                            shutil.copy2(src_path, out_path)
+                            image_files.append(out_path)
+                        elif ext == ".eps":
+                            if self._convert_eps_to_png(src_path, out_path):
+                                image_files.append(out_path)
+                    continue
 
-            ext = src_path.suffix.lower()
-            # Preserve original base name; force .png for web display
-            base_name = src_path.stem
-            if base_name in seen_names:
-                # Deduplicate if same image referenced multiple times
-                continue
-            seen_names.add(base_name)
-
-            out_name = f"{base_name}.png"
-            out_path = output_dir / out_name
-
-            if ext == ".pdf":
-                if self.convert_pdf_to_png(src_path, out_path):
-                    image_files.append(out_path)
-            elif ext in [".png", ".jpg", ".jpeg"]:
-                shutil.copy2(src_path, out_path)
-                image_files.append(out_path)
-            elif ext == ".eps":
-                if self._convert_eps_to_png(src_path, out_path):
-                    image_files.append(out_path)
+            # No external image — try to compile tikz
+            if "\\begin{tikzpicture}" in raw_content or "\\tikz" in raw_content:
+                label = fig.get("label", f"fig_{i:03d}")
+                out_name = f"{label}.png" if label else f"fig_{i:03d}.png"
+                out_path = output_dir / out_name
+                if out_path.name not in seen_names:
+                    seen_names.add(out_path.name)
+                    logger.info(f"Compiling tikz figure {i} -> {out_name}")
+                    if self._compile_tikz_figure(tex_dir, raw_content, out_path):
+                        image_files.append(out_path)
 
         logger.info(f"Extracted {len(image_files)} images from LaTeX source")
         return image_files
