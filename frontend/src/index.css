@@ -4,7 +4,7 @@
 
 @layer base {
   html, body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased;
     height: 100%;
     overflow: hidden;
   }
@@ -18,16 +18,16 @@
 
 /* Markdown content styles - modular cards */
 .markdown-body h1 {
-  @apply text-2xl font-bold mt-2 mb-4 pb-2 border-b-2 border-blue-100 text-gray-900;
+  @apply text-2xl font-bold mt-2 mb-4 pb-2 border-b-2 border-blue-100 dark:border-blue-800 text-gray-900 dark:text-gray-100;
 }
 .markdown-body h2 {
-  @apply text-lg font-semibold mt-6 mb-3 px-3 py-2 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg text-gray-800;
+  @apply text-lg font-semibold mt-6 mb-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-lg text-gray-800 dark:text-gray-200;
 }
 .markdown-body h3 {
-  @apply text-base font-semibold mt-4 mb-2 text-gray-700;
+  @apply text-base font-semibold mt-4 mb-2 text-gray-700 dark:text-gray-300;
 }
 .markdown-body p {
-  @apply my-3 leading-relaxed text-gray-700;
+  @apply my-3 leading-relaxed text-gray-700 dark:text-gray-300;
 }
 .markdown-body ul {
   @apply list-disc pl-6 my-3 space-y-1;
@@ -36,7 +36,7 @@
   @apply list-decimal pl-6 my-3 space-y-1;
 }
 .markdown-body li {
-  @apply my-1 text-gray-700;
+  @apply my-1 text-gray-700 dark:text-gray-300;
 }
 .markdown-body li::marker {
   @apply text-blue-500;
@@ -44,22 +44,22 @@
 
 /* Tables - styled cards */
 .markdown-body table {
-  @apply w-full border-collapse my-4 text-sm rounded-lg overflow-hidden shadow-sm border border-gray-200;
+  @apply w-full border-collapse my-4 text-sm rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700;
 }
 .markdown-body thead {
-  @apply bg-gray-100;
+  @apply bg-gray-100 dark:bg-gray-700;
 }
 .markdown-body th {
-  @apply border border-gray-200 px-4 py-2.5 text-left font-semibold text-gray-700 bg-gray-50;
+  @apply border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-left font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800;
 }
 .markdown-body td {
-  @apply border border-gray-200 px-4 py-2 text-gray-700;
+  @apply border border-gray-200 dark:border-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300;
 }
 .markdown-body tr:nth-child(even) {
-  @apply bg-gray-50/50;
+  @apply bg-gray-50/50 dark:bg-gray-800/50;
 }
 .markdown-body tr:hover {
-  @apply bg-blue-50/50;
+  @apply bg-blue-50/50 dark:bg-blue-900/20;
 }
 
 /* Code blocks */
@@ -67,7 +67,7 @@
   @apply bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto my-4 text-sm shadow-sm;
 }
 .markdown-body code {
-  @apply bg-gray-100 text-rose-600 px-1.5 py-0.5 rounded text-sm font-mono;
+  @apply bg-gray-100 dark:bg-gray-700 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded text-sm font-mono;
 }
 .markdown-body pre code {
   @apply bg-transparent text-inherit p-0;
@@ -75,12 +75,12 @@
 
 /* Blockquotes - highlight box */
 .markdown-body blockquote {
-  @apply border-l-4 border-amber-300 bg-amber-50 pl-4 py-2 pr-3 my-4 rounded-r-lg text-gray-600 italic;
+  @apply border-l-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 pl-4 py-2 pr-3 my-4 rounded-r-lg text-gray-600 dark:text-gray-400 italic;
 }
 
 /* Images - card style */
 .markdown-body img {
-  @apply max-w-full h-auto my-4 rounded-lg shadow-sm border border-gray-100;
+  @apply max-w-full h-auto my-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700;
 }
 
 /* Links */
@@ -90,10 +90,10 @@
 
 /* Horizontal rule */
 .markdown-body hr {
-  @apply my-6 border-gray-200;
+  @apply my-6 border-gray-200 dark:border-gray-700;
 }
 
 /* Strong emphasis */
 .markdown-body strong {
-  @apply text-gray-900 font-semibold;
+  @apply text-gray-900 dark:text-gray-100 font-semibold;
 }

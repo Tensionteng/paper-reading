@@ -36,15 +36,15 @@ export default function PaperPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-gray-400">
-        <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+      <div className="h-screen flex items-center justify-center text-gray-400 dark:text-gray-500">
+        <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin" />
       </div>
     )
   }
 
   if (error || !paper) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center text-gray-500">
+      <div className="h-screen flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
         <p className="mb-4">{error || '论文不存在'}</p>
         <button
           onClick={() => navigate('/')}
@@ -59,14 +59,14 @@ export default function PaperPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-white border-b px-6 py-3 flex items-center gap-3">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-3 flex items-center gap-3">
         <button
           onClick={() => navigate('/')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
         </button>
-        <span className="text-sm text-gray-500">返回列表</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">返回列表</span>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col">
         <PaperViewer paper={paper} onDelete={handleDelete} onRetry={handleRetry} />

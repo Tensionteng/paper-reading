@@ -32,8 +32,8 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
   }, [papers, query])
 
   return (
-    <div className="w-80 border-r bg-white flex flex-col h-full">
-      <div className="p-4 border-b">
+    <div className="w-80 border-r dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-full">
+      <div className="p-4 border-b dark:border-gray-700">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -41,7 +41,7 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索论文..."
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-2 border dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
           />
         </div>
       </div>
@@ -65,8 +65,8 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
           <button
             key={paper.arxiv_id}
             onClick={() => onSelect(paper)}
-            className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 transition-colors ${
-              selectedId === paper.arxiv_id ? 'bg-blue-50 border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
+            className={`w-full text-left px-4 py-3 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+              selectedId === paper.arxiv_id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
             }`}
           >
             <div className="flex items-start gap-2">
@@ -80,10 +80,10 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {paper.title_zh || paper.title || paper.arxiv_id}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                   {(paper.authors ? paper.authors.split(',')[0].trim() : null) || paper.arxiv_id}
                 </p>
               </div>
@@ -92,7 +92,7 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
         ))}
       </div>
 
-      <div className="p-3 border-t text-xs text-gray-400 text-center">
+      <div className="p-3 border-t dark:border-gray-700 text-xs text-gray-400 text-center">
         共 {papers.length} 篇论文
       </div>
     </div>

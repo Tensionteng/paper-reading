@@ -27,10 +27,10 @@ export default function HomePage() {
           onSelect={handleSelect}
           refreshTrigger={refreshTrigger}
         />
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-600 mb-2">救救孩子</h2>
-            <p className="text-sm">在左侧选择论文，或上方提交新的 arXiv 链接</p>
+            <h2 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">救救孩子</h2>
+            <p className="text-sm dark:text-gray-400">在左侧选择论文，或上方提交新的 arXiv 链接</p>
           </div>
         </div>
       </div>

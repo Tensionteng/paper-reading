@@ -26,14 +26,14 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-4xl mx-auto pb-8">
         {/* Header */}
-        <div className="mb-6 bg-white rounded-xl border p-6 shadow-sm">
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {paper.title_zh || paper.title || '无标题'}
               </h1>
               {paper.title && paper.title !== paper.title_zh && (
-                <p className="text-gray-500 mt-1 text-sm">{paper.title}</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{paper.title}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
                 href={`https://arxiv.org/abs/${paper.arxiv_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                 title="查看 arXiv 原文"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -49,7 +49,7 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
               {paper.status === 'failed' && (
                 <button
                   onClick={onRetry}
-                  className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
                   title="重新处理"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -57,7 +57,7 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
               )}
               <button
                 onClick={onDelete}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                 title="删除"
               >
                 <Trash2 className="w-4 h-4" />
@@ -65,14 +65,14 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+          <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
             {paper.authors && <span>作者: {paper.authors.split(',')[0].trim()}</span>}
             <span>arXiv: {paper.arxiv_id}</span>
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-              paper.status === 'done' ? 'bg-green-100 text-green-700' :
-              paper.status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
-              paper.status === 'pending' ? 'bg-gray-100 text-gray-700' :
-              'bg-red-100 text-red-700'
+              paper.status === 'done' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+              paper.status === 'processing' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+              paper.status === 'pending' ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' :
+              'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
             }`}>
               {paper.status === 'done' ? '已完成' :
                paper.status === 'processing' ? '处理中' :
@@ -82,7 +82,7 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
           </div>
 
           {paper.error_msg && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
               错误: {paper.error_msg}
             </div>
           )}
@@ -92,14 +92,14 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
         {paper.status === 'processing' && !paper.report_md && (
           <div className="flex items-center justify-center py-20 text-gray-400">
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
               <p>论文处理中，请稍候...</p>
             </div>
           </div>
         )}
 
         {paper.report_md && (
-          <div className="markdown-body bg-white rounded-xl border p-8 shadow-sm">
+          <div className="markdown-body bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-8 shadow-sm">
             <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm]}
               rehypePlugins={[rehypeKatex]}
@@ -110,7 +110,7 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
         )}
 
         {paper.status === 'failed' && !paper.report_md && (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-gray-400 dark:text-gray-500">
             <p>处理失败，请查看错误信息或点击重试</p>
           </div>
         )}
