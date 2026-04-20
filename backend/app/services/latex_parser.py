@@ -102,14 +102,31 @@ class LatexParser:
                 "email": "",
             })
         if not authors:
-            author_pattern = r"\\author\{([^}]*)\}"
-            for match in re.finditer(author_pattern, content, re.DOTALL):
-                author_text = match.group(1)
-                lines = [l.strip() for l in author_text.split("\\") if l.strip()]
-                if lines:
+            for match in re.finditer(r"\\author\s*\{", content):
+                author_text = self._extract_balanced_braces(content[match.start():], r"\author")
+                if not author_text:
+                    continue
+                # Split by \AND, \And, or \and
+                parts = re.split(r"\\(?:AND|And|and)\b", author_text)
+                for part in parts:
+                    part = part.strip()
+                    if not part:
+                        continue
+                    # Split by LaTeX line breaks (\\)
+                    lines = [l.strip() for l in re.split(r"\\\\", part) if l.strip()]
+                    if not lines:
+                        continue
+                    name = self.clean_latex_text(lines[0])
+                    if not name:
+                        continue
+                    affiliations = []
+                    for line in lines[1:]:
+                        line = self.clean_latex_text(line)
+                        if line:
+                            affiliations.append(line)
                     authors.append({
-                        "name": self.clean_latex_text(lines[0]),
-                        "affiliation": self.clean_latex_text(" ".join(lines[1:])),
+                        "name": name,
+                        "affiliation": " ".join(affiliations),
                         "email": "",
                     })
         return authors
@@ -199,14 +216,33 @@ class LatexParser:
         if not text:
             return ""
         text = re.sub(r"(?<!\\)%.*?\n", "\n", text)
+        # Common LaTeX special chars (before removing backslash commands)
+        special_chars = {
+            "{\\L}": "Ł", "{\\l}": "ł",
+            "{\\O}": "Ø", "{\\o}": "ø",
+            "{\\AE}": "Æ", "{\\ae}": "æ",
+            "{\\AA}": "Å", "{\\aa}": "å",
+            "{\\SS}": "ß", "{\\ss}": "ß",
+            "\\L": "Ł", "\\l": "ł",
+            "\\O": "Ø", "\\o": "ø",
+            "\\AE": "Æ", "\\ae": "æ",
+            "\\AA": "Å", "\\aa": "å",
+            "\\SS": "ß", "\\ss": "ß",
+        }
+        for latex, uchar in special_chars.items():
+            text = text.replace(latex, uchar)
         # Iteratively remove commands with single-level brace arguments
         for _ in range(10):
             new_text = re.sub(r"\\[a-zA-Z]+(\*)?\s*(\[[^\]]*\])?\s*\{[^{}]*\}", "", text)
             if new_text == text:
                 break
             text = new_text
+        # Remove commands with only optional args (e.g. \footnotemark[1])
+        text = re.sub(r"\\[a-zA-Z]+(\*)?\s*\[[^\]]*\]", "", text)
         text = re.sub(r"\\[a-zA-Z]+(\*)?", "", text)
         text = re.sub(r"\\[,;:!\"']", "", text)
+        # Remove stray braces
+        text = re.sub(r"[{}]", "", text)
         text = re.sub(r"~", " ", text)
         text = re.sub(r"\$\$.*?\$\$", lambda m: m.group(0), text, flags=re.DOTALL)
         text = re.sub(r"\$.*?\$", lambda m: m.group(0), text)
