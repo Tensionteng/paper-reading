@@ -68,7 +68,7 @@ export default function PaperPage() {
         </button>
         <span className="text-sm text-gray-500">返回列表</span>
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
         <PaperViewer paper={paper} onDelete={handleDelete} onRetry={handleRetry} />
       </div>
     </div>
