@@ -216,31 +216,23 @@ class LatexParser:
         if not text:
             return ""
         text = re.sub(r"(?<!\\)%.*?\n", "\n", text)
-        # Common LaTeX special chars (before removing backslash commands)
-        special_chars = {
-            "{\\L}": "Ł", "{\\l}": "ł",
-            "{\\O}": "Ø", "{\\o}": "ø",
-            "{\\AE}": "Æ", "{\\ae}": "æ",
-            "{\\AA}": "Å", "{\\aa}": "å",
-            "{\\SS}": "ß", "{\\ss}": "ß",
-            "\\L": "Ł", "\\l": "ł",
-            "\\O": "Ø", "\\o": "ø",
-            "\\AE": "Æ", "\\ae": "æ",
-            "\\AA": "Å", "\\aa": "å",
-            "\\SS": "ß", "\\ss": "ß",
-        }
-        for latex, uchar in special_chars.items():
-            text = text.replace(latex, uchar)
+        # Handle braced special chars first (e.g. {\\L} -> Ł) before removing commands
+        text = text.replace("{\\L}", "Ł").replace("{\\l}", "ł")
+        text = text.replace("{\\O}", "Ø").replace("{\\o}", "ø")
+        text = text.replace("{\\AE}", "Æ").replace("{\\ae}", "æ")
+        text = text.replace("{\\AA}", "Å").replace("{\\aa}", "å")
+        text = text.replace("{\\SS}", "ß").replace("{\\ss}", "ß")
         # Iteratively remove commands with single-level brace arguments
         for _ in range(10):
-            new_text = re.sub(r"\\[a-zA-Z]+(\*)?\s*(\[[^\]]*\])?\s*\{[^{}]*\}", "", text)
+            new_text = re.sub(r"\\[a-zA-Z]+(\\*)?\s*(\[[^\]]*\])?\s*\{[^{}]*\}", "", text)
             if new_text == text:
                 break
             text = new_text
         # Remove commands with only optional args (e.g. \footnotemark[1])
-        text = re.sub(r"\\[a-zA-Z]+(\*)?\s*\[[^\]]*\]", "", text)
-        text = re.sub(r"\\[a-zA-Z]+(\*)?", "", text)
-        text = re.sub(r"\\[,;:!\"']", "", text)
+        text = re.sub(r"\\[a-zA-Z]+(\\*)?\s*\[[^\]]*\]", "", text)
+        # Remove remaining commands without args (\large, \small, etc.)
+        text = re.sub(r"\\[a-zA-Z]+(\\*)?", "", text)
+        text = re.sub(r"\\[,;:!\"\']", "", text)
         # Remove stray braces
         text = re.sub(r"[{}]", "", text)
         text = re.sub(r"~", " ", text)
@@ -252,13 +244,15 @@ class LatexParser:
     def parse(self, tex_file: Path) -> Dict[str, Any]:
         content = self.read_tex_file(tex_file)
         resolved_content = self.resolve_inputs(content, tex_file.parent)
+        # Remove LaTeX comments before extracting metadata (avoids picking up commented-out \title / \author)
+        content_no_comments = re.sub(r"(?<!\\)%.*?\n", "\n", resolved_content)
         doc_match = re.search(r"\\begin\{document\}(.*?)\\end\{document\}", resolved_content, re.DOTALL | re.IGNORECASE)
         doc_content = doc_match.group(1) if doc_match else resolved_content
         return {
-            "documentclass": self.extract_documentclass(resolved_content),
-            "title": self.extract_title(resolved_content),
-            "authors": self.extract_authors(resolved_content),
-            "abstract": self.extract_abstract(resolved_content),
+            "documentclass": self.extract_documentclass(content_no_comments),
+            "title": self.extract_title(content_no_comments),
+            "authors": self.extract_authors(content_no_comments),
+            "abstract": self.extract_abstract(content_no_comments),
             "sections": self.extract_sections(doc_content),
             "figures": self.extract_figures(doc_content),
             "tables": self.extract_tables(doc_content),

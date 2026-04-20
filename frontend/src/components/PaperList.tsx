@@ -84,7 +84,12 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
                   {paper.title_zh || paper.title || paper.arxiv_id}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                  {(paper.authors ? paper.authors.split(',')[0].trim() : null) || paper.arxiv_id}
+                  {(() => {
+                    const firstAuthor = paper.authors ? paper.authors.split(',')[0].trim() : null
+                    const aff = paper.affiliation ? paper.affiliation.split(',')[0].trim() : null
+                    if (firstAuthor && aff) return `${firstAuthor} · ${aff}`
+                    return firstAuthor || paper.arxiv_id
+                  })()}
                 </p>
               </div>
             </div>

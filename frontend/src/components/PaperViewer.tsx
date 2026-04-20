@@ -66,7 +66,12 @@ export default function PaperViewer({ paper, onDelete, onRetry }: Props) {
           </div>
 
           <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
-            {paper.authors && <span>作者: {paper.authors.split(',')[0].trim()}</span>}
+            {paper.authors && (
+              <span>
+                作者: {paper.authors.split(',')[0].trim()}
+                {paper.affiliation && ` · ${paper.affiliation.split(',')[0].trim()}`}
+              </span>
+            )}
             <span>arXiv: {paper.arxiv_id}</span>
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
               paper.status === 'done' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :

@@ -40,12 +40,25 @@ SYSTEM_PROMPT = """你是学术论文阅读助手。你的任务是阅读一篇 
 - 看到复杂的架构图或实验结果时，调用 view_image 查看图片
 - 理解图片与文本的对应关系，在报告中恰当引用
 
-报告格式要求：
+报告格式要求（严格遵守）：
+- 报告开头必须按以下格式：
+  # 论文英文原标题
+
+  *中文翻译标题*
+
+  **作者**：xxx | **机构**：xxx
+- 禁止在报告中出现"论文阅读报告"这六个字，也不要写"这是一篇关于xxx的论文"
 - 使用中文撰写，学术术语可保留英文
 - 保留数学公式 $...$ 和 $$...$$
 - 引用图片时使用 Markdown 语法: ![描述](/images/{arxiv_id}/文件名.png)
 - 输出纯 Markdown，不要用 ```markdown 代码块包裹
 - 结构包含：研究背景、方法概述、核心贡献、实验结果、总结
+
+方法概述要求（非常重要）：
+- 方法概述必须详细，不能笼统概括
+- 要解释核心思路、具体算法步骤、关键公式含义、与之前方法的区别
+- 如果论文提出了新的架构，要解释每一层/每个模块的作用
+- 如果论文提出了新的损失函数或训练策略，要解释为什么有效
 
 注意：
 - 不要编造内容，只基于你实际阅读的内容生成报告
@@ -218,7 +231,36 @@ class PaperAgent:
 
 请逐步阅读论文，先了解整体结构，再深入关键 section，必要时查看图片理解图-文关系，最后生成报告。
 注意：不要一次性读取所有 section，根据重要性选择。报告中引用图片时使用路径 `/images/{self.arxiv_id}/<filename>`。
+报告开头必须是论文的英文原标题作为一级标题，下面用斜体写中文翻译标题，不要出现"论文阅读报告"字样。
 """
+
+    async def _step_with_retry(self, history: List[Message], max_retries: int = 5) -> Any:
+        """Call kosong.step with exponential backoff on 429 / engine overloaded."""
+        import time
+        for attempt in range(max_retries):
+            try:
+                return await step(
+                    self.provider,
+                    SYSTEM_PROMPT,
+                    self.toolset,
+                    history,
+                )
+            except Exception as e:
+                err_str = str(e)
+                is_rate_limit = (
+                    "429" in err_str
+                    or "rate limit" in err_str.lower()
+                    or "overloaded" in err_str.lower()
+                )
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait = 2 ** attempt * 5  # 5s, 10s, 20s, 40s, 80s
+                    logger.warning(
+                        f"[{self.arxiv_id}] Rate limited (429/overloaded), retrying in {wait}s (attempt {attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(wait)
+                    continue
+                raise
+        raise RuntimeError("Max retries exceeded")
 
     async def run(self) -> str:
         """Run the agent loop and return the generated report."""
@@ -229,12 +271,7 @@ class PaperAgent:
         for step_no in range(1, self.max_steps + 1):
             logger.info(f"[{self.arxiv_id}] Agent step {step_no}/{self.max_steps}")
 
-            result = await step(
-                self.provider,
-                SYSTEM_PROMPT,
-                self.toolset,
-                history,
-            )
+            result = await self._step_with_retry(history)
 
             # Append assistant message
             history.append(result.message)

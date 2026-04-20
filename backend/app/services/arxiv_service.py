@@ -2,7 +2,10 @@ import asyncio
 import io
 import re
 import shutil
+import subprocess
 import tarfile
+import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse
@@ -25,6 +28,30 @@ class ArxivService:
         self.images_dir.mkdir(parents=True, exist_ok=True)
         self.latex_dir.mkdir(parents=True, exist_ok=True)
         self.latex_parser = LatexParser()
+
+    def fetch_arxiv_metadata(self, arxiv_id: str) -> Dict[str, Any]:
+        """Fetch paper metadata from arXiv Atom API."""
+        url = f"http://export.arxiv.org/api/query?id_list={arxiv_id}"
+        try:
+            resp = requests.get(url, timeout=30)
+            if resp.status_code != 200:
+                return {}
+            root = ET.fromstring(resp.content)
+            ns = {"atom": "http://www.w3.org/2005/Atom"}
+            entry = root.find(".//atom:entry", ns)
+            if entry is None:
+                return {}
+            title_el = entry.find("atom:title", ns)
+            author_els = entry.findall("atom:author/atom:name", ns)
+            summary_el = entry.find("atom:summary", ns)
+            return {
+                "title": title_el.text.strip() if title_el is not None and title_el.text else "",
+                "authors": [a.text.strip() for a in author_els if a.text],
+                "abstract": summary_el.text.strip() if summary_el is not None and summary_el.text else "",
+            }
+        except Exception as e:
+            logger.warning(f"[{arxiv_id}] Failed to fetch arXiv metadata: {e}")
+            return {}
 
     def _extract_arxiv_id(self, url: str) -> str:
         url = url.strip()
@@ -156,11 +183,20 @@ class ArxivService:
                 return candidate
         return None
 
+    def _crop_pdf_white_margins(self, pdf_path: Path, output_path: Path) -> bool:
+        """Use pdfcrop to remove white margins from a PDF."""
+        try:
+            result = subprocess.run(
+                ["pdfcrop", str(pdf_path), str(output_path)],
+                capture_output=True,
+                timeout=30,
+            )
+            return result.returncode == 0 and output_path.exists()
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            return False
+
     def _compile_tikz_figure(self, tex_dir: Path, fig_content: str, output_path: Path) -> bool:
         """Compile a tikz figure to PNG using the paper's preamble."""
-        import subprocess
-        import tempfile
-
         # Find main tex to get preamble
         tex_files = list(tex_dir.rglob("*.tex"))
         main_tex = self.find_main_tex(tex_files)
@@ -221,6 +257,12 @@ class ArxivService:
                         f"stderr: {stderr_text}, stdout tail: {stdout_text}"
                     )
                     return False
+
+                # Crop white margins before converting to PNG
+                cropped_pdf = tmpdir_path / "fig-cropped.pdf"
+                if self._crop_pdf_white_margins(pdf_path, cropped_pdf):
+                    pdf_path = cropped_pdf
+                    logger.info(f"Cropped white margins for {output_path.name}")
 
                 self.convert_pdf_to_png(pdf_path, output_path, dpi=150)
                 return True
@@ -283,6 +325,7 @@ class ArxivService:
             "title": "",
             "title_zh": "",
             "authors": "",
+            "affiliation": "",
             "abstract": "",
             "report_md": "",
             "raw_sections": [],
@@ -293,6 +336,12 @@ class ArxivService:
 
         paper_images_dir = self.images_dir / arxiv_id
         paper_images_dir.mkdir(parents=True, exist_ok=True)
+
+        # Step 0: Fetch arXiv metadata (authors are more reliable from API)
+        arxiv_meta = self.fetch_arxiv_metadata(arxiv_id)
+        meta_authors = arxiv_meta.get("authors", [])
+        meta_title = arxiv_meta.get("title", "")
+        meta_abstract = arxiv_meta.get("abstract", "")
 
         # Step 1: Download or reuse LaTeX source
         tex_dir = self.download_latex_source(arxiv_id)
@@ -325,10 +374,42 @@ class ArxivService:
             result["images"] = [str(p.name) for p in image_paths]
 
             # Fill basic info
-            result["title"] = parsed.get("title", "")
-            authors_list = parsed.get("authors", [])
-            result["authors"] = ", ".join([a.get("name", "") for a in authors_list])
-            result["abstract"] = parsed.get("abstract", "")
+            latex_title = parsed.get("title", "")
+            latex_authors = parsed.get("authors", [])
+            latex_abstract = parsed.get("abstract", "")
+
+            # Title: prefer LaTeX (usually cleaner), fallback to arXiv API
+            result["title"] = latex_title or meta_title
+
+            # Authors: arXiv API is more reliable for author names
+            latex_author_names = [a.get("name", "").strip() for a in latex_authors]
+            # Heuristic: if LaTeX extracted only 1 suspicious author (too short, contains %, or looks like institution)
+            suspicious = (
+                len(latex_author_names) == 1 and latex_author_names[0]
+                and (len(latex_author_names[0]) < 5 or "%" in latex_author_names[0] or "@" in latex_author_names[0])
+            )
+            if meta_authors and (not latex_author_names or suspicious or all(n == "" for n in latex_author_names)):
+                result["authors"] = ", ".join(meta_authors)
+            else:
+                result["authors"] = ", ".join(n for n in latex_author_names if n)
+
+            # Affiliation: extract from LaTeX \author (if it contains institution info)
+            affiliations = []
+            for a in latex_authors:
+                aff = a.get("affiliation", "").strip()
+                if aff and aff not in affiliations and len(aff) < 200:
+                    affiliations.append(aff)
+            # If no affiliation found in LaTeX, try to infer from suspicious single-author content
+            if not affiliations and len(latex_author_names) == 1 and latex_author_names[0]:
+                raw = latex_author_names[0]
+                # e.g. "\large JD.com" -> extract "JD.com"
+                cleaned = re.sub(r"[\\%].*", "", raw).strip()
+                if cleaned and len(cleaned) < 100:
+                    affiliations.append(cleaned)
+            result["affiliation"] = ", ".join(affiliations)
+
+            # Abstract: prefer LaTeX (usually more complete), fallback to arXiv API
+            result["abstract"] = latex_abstract or meta_abstract
             result["raw_sections"] = parsed.get("sections", [])
 
             # Step 4: Generate report with Agent
@@ -337,11 +418,6 @@ class ArxivService:
                 generate_report_with_agent(arxiv_id, parsed, paper_images_dir, image_paths)
             )
             result["report_md"] = report_md
-
-            # Extract Chinese title from report
-            title_match = re.search(r"^#\s+(.+)$", report_md, re.MULTILINE)
-            if title_match:
-                result["title_zh"] = title_match.group(1).strip()
 
             result["status"] = "done"
             logger.info(f"[{arxiv_id}] ===== Processing completed successfully =====")

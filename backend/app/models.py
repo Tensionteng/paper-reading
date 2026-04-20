@@ -11,6 +11,7 @@ class Paper(Base):
     title = Column(String, nullable=True)
     title_zh = Column(String, nullable=True)
     authors = Column(String, nullable=True)
+    affiliation = Column(String, nullable=True)
     abstract = Column(Text, nullable=True)
     report_md = Column(Text, nullable=True)       # LLM generated structured report
     raw_sections = Column(JSON, nullable=True)    # Original LaTeX parsed sections

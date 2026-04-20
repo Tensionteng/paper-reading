@@ -12,6 +12,7 @@ class PaperBase(BaseModel):
     title: Optional[str] = None
     title_zh: Optional[str] = None
     authors: Optional[str] = None
+    affiliation: Optional[str] = None
     abstract: Optional[str] = None
     status: str = "pending"
     error_msg: Optional[str] = None

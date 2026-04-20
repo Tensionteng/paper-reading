@@ -15,6 +15,7 @@ export interface Paper {
   title: string | null
   title_zh: string | null
   authors: string | null
+  affiliation: string | null
   abstract: string | null
   status: string
   error_msg: string | null
