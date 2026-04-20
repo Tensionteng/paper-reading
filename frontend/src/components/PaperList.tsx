@@ -84,7 +84,7 @@ export default function PaperList({ selectedId, onSelect, refreshTrigger }: Prop
                   {paper.title_zh || paper.title || paper.arxiv_id}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5 truncate">
-                  {paper.authors || paper.arxiv_id}
+                  {(paper.authors ? paper.authors.split(',')[0].trim() : null) || paper.arxiv_id}
                 </p>
               </div>
             </div>
